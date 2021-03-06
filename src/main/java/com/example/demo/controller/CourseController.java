@@ -13,23 +13,18 @@ import java.io.IOException;
 import java.util.List;
 
 @RestController
-@RequestMapping("/course/search")
+@RequestMapping("/Course/search")
 public class CourseController {
 
     @Autowired
     private ILuceneService service;
 
-    // 需要验证身份
-    @GetMapping("/helloProject")
-    public String helloProject() {
-        return "Hello Project!";
-    }
-
     // 关键字搜索接口
-    @PostMapping("/keyWord")
-    public ResultBean<List<Course>> searchByKeyWord(@RequestBody String keyWord) throws IOException, ParseException, InvalidTokenOffsetsException {
+    @RequestMapping(value = "/keyWord",method = RequestMethod.GET)
+    public List<Course> searchByKeyWord(@RequestParam(value = "keyword")String keyWord)
+            throws IOException, ParseException, InvalidTokenOffsetsException {
         List<Course> result = service.searchByKeyWord(keyWord);
-        return ResultUtil.success(result);
+        return result;
     }
 
 }

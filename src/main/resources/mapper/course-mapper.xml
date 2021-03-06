@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.example.demo.mapper.CourseMapper">
+    <select id="getCourseById" parameterType="String"
+            resultType="com.example.demo.entity.Course">
+        SELECT id,name,url,cover,origin,score,titlelist,universitylist,contentlist FROM Course where
+        id=#{id}
+    </select>
+    <select id="getAllCourse"
+            resultType="com.example.demo.entity.Course">
+        SELECT id,name,url,cover,origin,score,titlelist,universitylist,contentlist FROM Course
+    </select>
+
+
+</mapper>

@@ -9,6 +9,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import org.springframework.web.multipart.MultipartFile;
+import sun.font.TrueTypeFont;
 
 import java.io.File;
 import java.util.Calendar;
@@ -27,77 +28,13 @@ public class JpaController {
     static int user_id = 10;
     static int post_id = 10;
 
-    @RequestMapping("/hello")
-    public String hello() {
-        System.out.println(System.currentTimeMillis() / 1000);
-//        System.out.println(Calendar.getInstance().getTimeInMillis());
-//        System.out.println(new Date().getTime());
-//        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext()
-//                .getAuthentication()
-//                .getPrincipal();
-//        System.out.println(userDetails.getUsername());  //  获取用户名，加上了这个的话hello也需要验证身份
-//
-//        BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
-//        System.out.println(bCryptPasswordEncoder.encode("123456"));
-//        System.out.println(bCryptPasswordEncoder.encode("222222"));
-//        System.out.println(bCryptPasswordEncoder.encode("333333"));
-        return "<div>Hello World!</div><div>This is jpa on project!</div>";
-    }
-
-    @RequestMapping("/shouldAuthority")  // 需要身份验证的hello界面
-    public String shouldAuthority() {
-        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext()
-                .getAuthentication()
-                .getPrincipal();
-        System.out.println(userDetails.getUsername());
-        return "<div>Hello World!</div><div>This is jpa on project!</div>";
-    }
-
-//    @RequestMapping("/Course/searchByCourseId")
-//    public List<Map<String, Object>> courseSearchByCourseId(@RequestBody String jsonObject) {
-//        JSONObject object = JSONObject.parseObject(jsonObject);
-//        int course_id = object.getIntValue("course_id");
-//        List<Map<String, Object>> list = jdbcTemplate.queryForList(
-//                "SELECT * FROM Mycourse WHERE course_id = ?", course_id);
-//        return list;
-//    }
-//
-    @RequestMapping("/Course/insertByFile")
-    public void courseInsertByFile(@RequestBody String file) throws Exception {
-//        System.out.println(file);
-        String[] obj = file.split("\n");
-        System.out.println(obj.length);
-        for (String o : obj) {
-            System.out.println("o = " + o);
-            JSONObject object = JSONObject.parseObject(o);
-            int course_id = object.getIntValue("id");
-            System.out.println("course_id = " + course_id);
-            String name = object.getString("title");
-            System.out.println("name = " + name);
-            String url = object.getString("class_url");
-            System.out.println("url = " + url);
-            String cover = object.getString("image_url");
-            System.out.println("cover = " + cover);
-            String origin = "bilibili";
-            int score = 0;
-            int counter = 0;
-            String type = "video";
-            int relative_id = object.getIntValue("relative_id");
-            System.out.println("relative_id = " + relative_id);
-
-            jdbcTemplate.update("INSERT INTO Mycourse VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    course_id, name, url, cover, origin, score, counter, type, relative_id);
-        }
-    }
-
-    @RequestMapping("/User/insert")
-    public String userInsert(@RequestBody String jsonObject) {
-        JSONObject object = JSONObject.parseObject(jsonObject);
+    @RequestMapping(value = "/User/insert", method = RequestMethod.POST)
+    public String userInsert(@RequestParam(value = "name")String name,
+                             @RequestParam(value = "school")String school,
+                             @RequestParam(value = "telephone")String telephone,
+                             @RequestParam(value = "password")String password) {
         user_id++;
-        String name = object.getString("name");
-        String school = object.getString("school");
-        String telephone = object.getString("telephone");
-        String password = bCryptPasswordEncoder.encode(object.getString("password"));
+        password = bCryptPasswordEncoder.encode(password);
         String portrait_url = "http://47.100.79.77/img/portrait.f98bd381.svg";
         List<Map<String, Object>> list = jdbcTemplate.queryForList(
                 "SELECT * FROM User WHERE name = ?", name);
@@ -109,20 +46,6 @@ public class JpaController {
                     user_id, name, school, telephone, password, portrait_url);
             return "注册成功";
         }
-    }
-
-    @RequestMapping("/User/login")
-    public String userLogin(@RequestBody String jsonObject) {
-        JSONObject object = JSONObject.parseObject(jsonObject);
-        String name = object.getString("name");
-        String password = bCryptPasswordEncoder.encode(object.getString("password"));
-        List<Map<String, Object>> list = jdbcTemplate.queryForList(
-                "SELECT * FROM User WHERE name = ? and password = ?",
-                name, password);
-        if (list.size() == 1)
-            return "登录成功";
-        else
-            return "登录失败";
     }
 
     @RequestMapping("/User/getDetail")
@@ -191,9 +114,7 @@ public class JpaController {
     }
 
     @RequestMapping("/Posting/searchByCourseId")
-    public List<Map<String, Object>> postingSearchByCourseId(@RequestBody String jsonObject) {
-        JSONObject object = JSONObject.parseObject(jsonObject);
-        int course_id = object.getIntValue("course_id");
+    public List<Map<String, Object>> postingSearchByCourseId(@RequestParam(value = "course_id")int course_id) {
         List<Map<String, Object>> list = jdbcTemplate.queryForList(
                 "SELECT post_id, type, title, content, counter, post_time, user_id, name, portrait_url " +
                         "FROM Posting NATURAL JOIN Post NATURAL JOIN User NATURAL JOIN Relative " +
@@ -202,10 +123,8 @@ public class JpaController {
     }
 
     @RequestMapping("/Rate/insert")
-    public String rateInsert(@RequestBody String jsonObject) {
-        JSONObject object = JSONObject.parseObject(jsonObject);
-        int course_id = object.getIntValue("course_id");
-        int score = object.getIntValue("score");
+    public String rateInsert(@RequestParam(value = "course_id")int course_id,
+                             @RequestParam(value = "score")int score) {
         UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext()
                 .getAuthentication()
                 .getPrincipal();
@@ -237,9 +156,7 @@ public class JpaController {
     }
 
     @RequestMapping("/Star/insert")
-    public void starInsert(@RequestBody String jsonObject) {
-        JSONObject object = JSONObject.parseObject(jsonObject);
-        int course_id = object.getIntValue("course_id");
+    public void starInsert(@RequestParam(value = "course_id")int course_id) {
         UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext()
                 .getAuthentication()
                 .getPrincipal();
@@ -271,17 +188,15 @@ public class JpaController {
     }
 
     @RequestMapping("/Post/insert")
-    public String postInsert(@RequestBody String jsonObject) {
-        JSONObject object = JSONObject.parseObject(jsonObject);
+    public String postInsert(@RequestParam(value = "type")String type,
+                             @RequestParam(value = "title")String title,
+                             @RequestParam(value = "content")String content) {
         post_id++;
-        int post_time = (int)System.currentTimeMillis() / 1000;
-        String type = object.getString("type");
-        String title = object.getString("title");
-        String content = object.getString("content");
         UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext()
                 .getAuthentication()
                 .getPrincipal();
         String name = userDetails.getUsername();
+        int post_time = (int)System.currentTimeMillis() / 1000;
         List<Map<String, Object>> list = jdbcTemplate.queryForList(
                 "SELECT user_id " +
                         "FROM User " +
@@ -294,19 +209,15 @@ public class JpaController {
     }
 
     @RequestMapping("/Posting/like")
-    public void postingLike(@RequestBody String jsonObject) {
-        JSONObject object = JSONObject.parseObject(jsonObject);
-        int post_id = object.getIntValue("post_id");
+    public void postingLike(@RequestParam(value = "post_id")int post_id) {
         jdbcTemplate.update("UPDATE Posting " +
                 "SET counter = counter + 1 " +
                 "WHERE post_id = ? ", post_id);
     }
 
     @RequestMapping("/Posting/comment")
-    public void postingComment(@RequestBody String jsonObject) {
-        JSONObject object = JSONObject.parseObject(jsonObject);
-        int post_id = object.getIntValue("post_id");
-        String content = object.getString("content");
+    public void postingComment(@RequestParam(value = "post_id")int post_id,
+                               @RequestParam(value = "content")String content) {
         UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext()
                 .getAuthentication()
                 .getPrincipal();
@@ -328,21 +239,5 @@ public class JpaController {
                         "ORDER BY counter");
         return list;
     }
-
-
-//    @RequestMapping("/User/searchByUserId")
-//    public List<Map<String, Object>> userSearchByUserId(@RequestBody String jsonObject) {
-//        JSONObject object = JSONObject.parseObject(jsonObject);
-//        int user_id = object.getIntValue("user_id");
-//        List<Map<String, Object>> list = jdbcTemplate.queryForList(
-//                "SELECT * FROM User WHERE user_id = ?", user_id);
-//        return list;
-//    }
-//
-//    @RequestMapping("/Posting/insert")
-//    public void postingInsert(int post_id, String type, String title,
-//                              String content, int counter, String post_time) {
-//        jdbcTemplate.update("INSERT INTO Posting VALUES (?, ?, ?, ?, ?, ?)",
-//                post_id, type, title, content, counter, post_time);
-//    }
+    
 }
