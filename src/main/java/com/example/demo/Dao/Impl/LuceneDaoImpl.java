@@ -47,7 +47,7 @@ public class LuceneDaoImpl implements ILuceneDao{
             String contentTags = c.getContentList();
             String titleTags = c.getTitleList();
             String universityTags = c.getUniversityList();
-            document.add(new StringField("id", c.getId() + "", Field.Store.YES));
+            document.add(new StringField("course_id", c.getId() + "", Field.Store.YES));
             document.add(new Field("name", c.getName() + "", TextField.TYPE_STORED));
             document.add(new Field("contentTags", contentTags + "", TextField.TYPE_STORED));
             document.add(new Field("titleTags", titleTags + "", TextField.TYPE_STORED));
@@ -88,7 +88,7 @@ public class LuceneDaoImpl implements ILuceneDao{
             Document document = indexSearcher.doc(doc);
             Course course = new Course();
             // 这里需要一个通过 id 拿到数据库中 Course 的接口
-            course = courseMapper.getCourseById(document.get("id"));
+            course = courseMapper.getCourseById(document.get("course_id"));
             String name = highlighter.getBestFragment(new MyIKAnalyzer(), "name", document.get("name"));
             if(name == null) {
                 name = course.getName();
@@ -119,7 +119,7 @@ public class LuceneDaoImpl implements ILuceneDao{
     @Override
     public void addCourseIndex(Course course) throws IOException {
         Document document = new Document();
-        document.add(new StringField("id", course.getId() + "", Field.Store.YES));
+        document.add(new StringField("course_id", course.getId() + "", Field.Store.YES));
         document.add(new Field("name", course.getName() + "", TextField.TYPE_STORED));
         document.add(new Field("contentTags", course.getContentList() + "", TextField.TYPE_STORED));
         document.add(new Field("titleTags", course.getTitleList() + "", TextField.TYPE_STORED));

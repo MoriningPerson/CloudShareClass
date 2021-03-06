@@ -12,8 +12,18 @@ CREATE TABLE IF NOT EXISTS `Mycourse` (
 );
 
 --DROP TABLE IF EXISTS `Course`;
-CREATE TABLE IF NOT EXISTS `Course`(id int, `name` varchar(50), `url` varchar(200), cover varchar(200),
-origin varchar(20), score int, titlelist varchar(200), universitylist varchar(200), contentlist varchar(200));
+CREATE TABLE IF NOT EXISTS `Course`
+(
+    `course_id` int,
+    `name` varchar(50),
+    `url` varchar(200),
+    cover varchar(200),
+    `origin` varchar(20),
+    `score` int,
+    `titlelist` varchar(200),
+    `universitylist` varchar(200),
+    `contentlist` varchar(200))
+;
 
 
 --DROP TABLE IF EXISTS `User`;
@@ -43,6 +53,7 @@ CREATE TABLE IF NOT EXISTS `Tag` (
     `counter` INT(11),
     `type` VARCHAR(200)
 );
+
 
 --DROP TABLE IF EXISTS `Star`;
 CREATE TABLE IF NOT EXISTS `Star` (

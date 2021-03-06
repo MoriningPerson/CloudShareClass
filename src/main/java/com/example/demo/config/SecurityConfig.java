@@ -114,6 +114,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter
                 .antMatchers("/Posting/like").authenticated()
                 .antMatchers("/Posting/comment").authenticated()
                 .antMatchers("/shouldAuthority").authenticated()
+                .antMatchers("/User/browse").authenticated()
                 .anyRequest().permitAll()
                 .and()
                 .requiresChannel()
