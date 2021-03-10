@@ -1,5 +1,4 @@
 package com.example.demo.controller;
-//import com.example.demo.entity.Course;
 import com.example.demo.entity.Course;
 import com.example.demo.entity.ResultBean;
 import com.example.demo.service.ILuceneService;
@@ -10,7 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
-import java.util.List;
+import java.util.*;
 
 @RestController
 @RequestMapping("/Course/search")
@@ -20,10 +19,11 @@ public class CourseController {
     private ILuceneService service;
 
     // 关键字搜索接口
-    @RequestMapping(value = "/keyWord",method = RequestMethod.GET)
+    @PostMapping("/keyWord")
     public List<Course> searchByKeyWord(@RequestParam(value = "keyword")String keyWord)
             throws IOException, ParseException, InvalidTokenOffsetsException {
         List<Course> result = service.searchByKeyWord(keyWord);
+        result.sort((p1, p2) -> p1.getScore() > p2.getScore() ? 1 : 0);
         return result;
     }
 

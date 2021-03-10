@@ -3,12 +3,13 @@ package com.example.demo.entity;
 import java.util.List;
 
 public class Course {
-    private int id;
+    private int course_id;
     private String name;
     private String url;
     private String cover;
     private String origin;
     private int score;
+    private String type;
     private String titleList;
     private String universityList;
     private String contentList;
@@ -16,12 +17,20 @@ public class Course {
     public Course() {
     }
 
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
     public int getId() {
-        return id;
+        return course_id;
     }
 
     public void setId(int id) {
-        this.id = id;
+        this.course_id = id;
     }
 
     public String getName() {

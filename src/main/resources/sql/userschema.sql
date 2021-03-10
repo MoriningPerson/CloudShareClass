@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS `Course`
     cover varchar(200),
     `origin` varchar(20),
     `score` int,
+    `type` varchar(200),
     `titlelist` varchar(200),
     `universitylist` varchar(200),
     `contentlist` varchar(200))
@@ -48,10 +49,10 @@ CREATE TABLE IF NOT EXISTS `Posting` (
 
 --DROP TABLE IF EXISTS `Tag`;
 CREATE TABLE IF NOT EXISTS `Tag` (
-    `tag_id` INT(11) PRIMARY KEY AUTO_INCREMENT,
+    `tag_id` INT(11),
     `tag_name` VARCHAR(200),
     `counter` INT(11),
-    `type` VARCHAR(200)
+    `tag_type` VARCHAR(200)
 );
 
 
