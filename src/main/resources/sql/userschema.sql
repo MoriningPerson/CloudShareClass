@@ -19,12 +19,12 @@ CREATE TABLE IF NOT EXISTS `Course`
     `url` varchar(200),
     cover varchar(200),
     `origin` varchar(20),
-    `score` int,
+    `score` DECIMAL(10, 2),
     `type` varchar(200),
-    `titlelist` varchar(200),
-    `universitylist` varchar(200),
-    `contentlist` varchar(200))
-;
+    `titleList` varchar(200),
+    `universityList` varchar(200),
+    `contentList` varchar(200)
+);
 
 
 --DROP TABLE IF EXISTS `User`;
@@ -125,4 +125,16 @@ CREATE TABLE IF NOT EXISTS `CourseIndex` (
     `cover` VARCHAR(200),
     `origin` VARCHAR(200),
     `type` VARCHAR(200)
+);
+
+--DROP TABLE IF EXITS `Message`;
+CREATE TABLE IF NOT EXISTS `Message` (
+    `user_id` INT(11),
+    `course_id` INT(11)
+);
+
+--DROP TABLE IF EXITS `Recommend`;
+CREATE TABLE IF NOT EXISTS `Recommend` (
+    `user_id` INT(11),
+    `course_id` INT(11)
 );

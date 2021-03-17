@@ -3,12 +3,12 @@
 <mapper namespace="com.example.demo.mapper.CourseMapper">
     <select id="getCourseById" parameterType="String"
             resultType="com.example.demo.entity.Course">
-        SELECT course_id,name,url,cover,origin,score,type,titlelist,universitylist,contentlist FROM Course where
+        SELECT course_id,name,url,cover,origin,score,type,titleList,universityList,contentList FROM Course where
         course_id=#{id}
     </select>
     <select id="getAllCourse"
             resultType="com.example.demo.entity.Course">
-        SELECT course_id,name,url,cover,origin,score,type,titlelist,universitylist,contentlist FROM Course
+        SELECT course_id,name,url,cover,origin,score,type,titleList,universityList,contentList FROM Course
     </select>
 
 

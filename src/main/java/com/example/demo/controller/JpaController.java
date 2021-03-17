@@ -1,16 +1,21 @@
 package com.example.demo.controller;
 
 
+import com.example.demo.entity.Course;
+import com.example.demo.service.ILuceneService;
 import com.example.demo.utils.UserUtil;
+import com.mysql.cj.x.protobuf.MysqlxCursor;
+import org.apache.lucene.queryparser.classic.ParseException;
+import org.apache.lucene.search.highlight.InvalidTokenOffsetsException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
-import com.example.demo.utils.UserUtil.*;
 
+import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 @RestController
@@ -160,6 +165,8 @@ public class JpaController {
                     course_id, course_id);
             jdbcTemplate.update("UPDATE Course " +
                     "SET score = ( SELECT score FROM Mycourse WHERE course_id = ?)",course_id);
+            updateLike(course_id,score,user_id);
+            jdbcTemplate.update("DELETE FROM Message WHERE user_id=? and course_id=?",user_id,course_id);
             return "评分成功";
         }
     }
@@ -277,7 +284,7 @@ public class JpaController {
         List<Map<String, Object>> list = jdbcTemplate.queryForList(
                 "SELECT post_id, type, title, content, counter, post_time, user_id, name, portrait_url " +
                         "FROM Posting NATURAL JOIN Post NATURAL JOIN User " +
-                        "ORDER BY counter");
+                        "ORDER BY counter DESC");
         return list;
     }
 
@@ -318,19 +325,19 @@ public class JpaController {
         List<Map<String, Object>> list1 = jdbcTemplate.queryForList(
                 "SELECT course_id,name,url,cover,origin,type " +
                         "FROM Mycourse " +
-                        "WHERE relative_id = ? and Course.course_id <> ? " +
-                        "ORDER BY score " +
+                        "WHERE relative_id = ? and course_id <> ? and `type` = ? " +
+                        "ORDER BY score DESC " +
                         "LIMIT 10",
-                course_id,course_id
+                course_id,course_id,"course"
         );
         String titleList = jdbcTemplate.queryForObject("SELECT titleList FROM Course WHERE course_id=" + course_id,String.class);
         String universityList = jdbcTemplate.queryForObject("SELECT universityList FROM Course WHERE course_id=" + course_id,String.class);
         List<Map<String, Object>> list2 = jdbcTemplate.queryForList(
                 "SELECT course_id,name,url,cover,origin,type " +
                         "FROM Course " +
-                        "WHERE titleList = ? and universityList = ? and course_id <> ? " +
+                        "WHERE titleList = ? and universityList = ? and course_id <> ? and `type` = ? " +
                         "LIMIT ?"
-                        ,titleList,universityList,course_id,10-list1.size()
+                        ,titleList,universityList,course_id,"course",10-list1.size()
         );
         list1.addAll(list2);
         for (Map<String, Object> object : list1) {
@@ -340,6 +347,92 @@ public class JpaController {
             object.put("universityList",universityList);
         }
         return list1;
+    }
+
+    @RequestMapping("Resource/relative")
+    public List<Map<String, Object>> resourceRelative(@RequestParam(value="course_id")int course_id) {
+        List<Map<String, Object>> list1 = jdbcTemplate.queryForList(
+                "SELECT course_id,name,url,cover,origin,type " +
+                        "FROM Mycourse " +
+                        "WHERE relative_id = ? and course_id <> ? and `type` = ? " +
+                        "ORDER BY score DESC ",
+                course_id,course_id,"resource"
+        );
+        if (list1.size() < 10) {
+            String titleList = jdbcTemplate.queryForObject("SELECT titleList FROM Course WHERE course_id=" + course_id,String.class);
+            String universityList = jdbcTemplate.queryForObject("SELECT universityList FROM Course WHERE course_id=" + course_id,String.class);
+            List<Map<String, Object>> list2 = jdbcTemplate.queryForList(
+                    "SELECT course_id,name,url,cover,origin,type " +
+                            "FROM Course " +
+                            "WHERE titleList = ? and universityList = ? and course_id <> ? and `type` = ? " +
+                            "LIMIT ?"
+                    ,titleList,universityList,course_id,"resource",10-list1.size()
+            );
+            list1.addAll(list2);
+        }
+        for (Map<String, Object> object : list1) {
+            String titleList = jdbcTemplate.queryForObject("SELECT titleList FROM Course WHERE course_id = " + course_id,String.class);
+            String universityList = jdbcTemplate.queryForObject("SELECT universityList FROM Course WHERE course_id = " + course_id,String.class);
+            object.put("titleList",titleList);
+            object.put("universityList",universityList);
+        }
+        return list1;
+    }
+
+    @RequestMapping("Video/relative")
+    public List<Map<String, Object>> videoRelative(@RequestParam(value="course_id")int course_id) {
+        List<Map<String, Object>> list1 = jdbcTemplate.queryForList(
+                "SELECT course_id,name,url,cover,origin,type " +
+                        "FROM Mycourse " +
+                        "WHERE relative_id = ? and course_id <> ? and `type` = ? " +
+                        "ORDER BY score DESC " +
+                        "LIMIT 10",
+                course_id,course_id,"video"
+        );
+        String titleList = jdbcTemplate.queryForObject("SELECT titleList FROM Course WHERE course_id=" + course_id,String.class);
+        String universityList = jdbcTemplate.queryForObject("SELECT universityList FROM Course WHERE course_id=" + course_id,String.class);
+        List<Map<String, Object>> list2 = jdbcTemplate.queryForList(
+                "SELECT course_id,name,url,cover,origin,type " +
+                        "FROM Course " +
+                        "WHERE titleList = ? and universityList = ? and course_id <> ? and `type` = ? " +
+                        "LIMIT ?"
+                ,titleList,universityList,course_id,"video",10-list1.size()
+        );
+        list1.addAll(list2);
+        for (Map<String, Object> object : list1) {
+            titleList = jdbcTemplate.queryForObject("SELECT titleList FROM Course WHERE course_id = " + course_id,String.class);
+            universityList = jdbcTemplate.queryForObject("SELECT universityList FROM Course WHERE course_id = " + course_id,String.class);
+            object.put("titleList",titleList);
+            object.put("universityList",universityList);
+        }
+        return list1;
+    }
+
+    @RequestMapping("/User/star")
+    public String star(@RequestParam(value="course_id")int course_id) {
+        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getPrincipal();
+        String name = userDetails.getUsername();
+        List<Map<String, Object>> list = jdbcTemplate.queryForList(
+                "SELECT user_id " +
+                        "FROM User " +
+                        "WHERE name = ?", name);
+        int user_id = (int)list.get(0).get("user_id");
+        List<Map<String, Object>> list1 = jdbcTemplate.queryForList("SELECT * FROM Star WHERE user_id=? and course_id=?",user_id,course_id);
+        if (list1.size() > 0) {
+            return "收藏失败";
+        }
+        jdbcTemplate.update("INSERT INTO Star VALUES (?, ?)", course_id, user_id);
+        updateLike(course_id,5,user_id);
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                updateRecommend(user_id);
+            }
+        });
+        thread.start();
+        return "收藏成功";
     }
 
     @RequestMapping("/User/browse")
@@ -353,9 +446,226 @@ public class JpaController {
                         "FROM User " +
                         "WHERE name = ?", name);
         int user_id = (int)list.get(0).get("user_id");
+        List<Map<String, Object>> list1 = jdbcTemplate.queryForList("SELECT * FROM Browse WHERE user_id=? and course_id=?",user_id,course_id);
+        if (list1.size() > 0) {
+            return "浏览失败";
+        }
         jdbcTemplate.update("INSERT INTO Browse VALUES (?, ?, ?)", course_id, user_id,  (int)(System.currentTimeMillis() / 1000));
         jdbcTemplate.update("UPDATE Mycourse SET counter = counter + 1 " +
                 "WHERE course_id=?",course_id);
+        updateLike(course_id,3,user_id);
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                updateRecommend(user_id);
+            }
+        });
+        thread.start();
         return "浏览成功";
+    }
+
+    @RequestMapping("/User/watch")
+    public String watch(@RequestParam(value="course_id")int course_id) {
+        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getPrincipal();
+        String name = userDetails.getUsername();
+        List<Map<String, Object>> list = jdbcTemplate.queryForList(
+                "SELECT user_id " +
+                        "FROM User " +
+                        "WHERE name = ?", name);
+        int user_id = (int)list.get(0).get("user_id");
+        List<Map<String, Object>> list1 = jdbcTemplate.queryForList("SELECT * FROM Watch WHERE user_id=? and course_id=?",user_id,course_id);
+        if (list1.size() > 0) {
+            return "观看失败";
+        }
+        jdbcTemplate.update("INSERT INTO Watch VALUES (?, ?)", course_id, user_id);
+        jdbcTemplate.update("UPDATE Mycourse SET counter = counter + 1 " +
+                "WHERE course_id = ?",course_id);
+        jdbcTemplate.update("INSERT INTO Message VALUES (?, ?)",user_id,course_id);
+        updateLike(course_id,5,user_id);
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                updateRecommend(user_id);
+            }
+        });
+        thread.start();
+        return "观看成功";
+    }
+
+    @RequestMapping("/User/recommend")
+    public List<Map<String,Object>> recommend() {
+        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getPrincipal();
+        String name = userDetails.getUsername();
+        List<Map<String, Object>> list = jdbcTemplate.queryForList(
+                "SELECT user_id " +
+                        "FROM User " +
+                        "WHERE name = ?", name);
+        int user_id = (int)list.get(0).get("user_id");
+        List<Map<String,Object>> list2 = jdbcTemplate.queryForList("SELECT * FROM Recommend NATURAL JOIN Course WHERE user_id = ?",user_id);
+        if (list2.size() == 0) {
+            List<Map<String, Object>> list4 = jdbcTemplate.queryForList(
+                    "SELECT course_id, name, url, cover, origin, score, counter, type " +
+                            "FROM Mycourse " +
+                            "ORDER BY counter DESC " +
+                            "LIMIT 20");
+            for (Map<String, Object> object : list4) {
+                int course_id = (int)object.get("course_id");
+                String titleList = jdbcTemplate.queryForObject("SELECT titleList FROM Course WHERE course_id = " + course_id,String.class);
+                String universityList = jdbcTemplate.queryForObject("SELECT universityList FROM Course WHERE course_id = " + course_id,String.class);
+                object.put("titleList",titleList);
+                object.put("universityList",universityList);
+            }
+            return list4;
+        } else {
+            return list2;
+        }
+    }
+
+    @RequestMapping("/User/interest")
+    public List<Map<String,Object>> interest() {
+        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getPrincipal();
+        String name = userDetails.getUsername();
+        List<Map<String, Object>> list = jdbcTemplate.queryForList(
+                "SELECT user_id " +
+                        "FROM User " +
+                        "WHERE name = ?", name);
+        int user_id = (int)list.get(0).get("user_id");
+        return jdbcTemplate.queryForList("SELECT * FROM `Like` " +
+                "WHERE user_id=? " +
+                "ORDER BY value DESC " +
+                "LIMIT 5",user_id);
+    }
+
+    @RequestMapping("/User/message")
+    public List<Map<String,Object>> message() {
+        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getPrincipal();
+        String name = userDetails.getUsername();
+        List<Map<String, Object>> list = jdbcTemplate.queryForList(
+                "SELECT user_id " +
+                        "FROM User " +
+                        "WHERE name = ?", name);
+        int user_id = (int)list.get(0).get("user_id");
+        return jdbcTemplate.queryForList("SELECT * FROM Message NATURAL JOIN Course WHERE user_id = ?",user_id);
+    }
+
+    @RequestMapping("/User/tag")
+    public String tag(@RequestParam(value="tag")String tag) {
+        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getPrincipal();
+        String name = userDetails.getUsername();
+        List<Map<String, Object>> list = jdbcTemplate.queryForList(
+                "SELECT user_id " +
+                        "FROM User " +
+                        "WHERE name = ?", name);
+        int user_id = (int)list.get(0).get("user_id");
+        String[] tags = tag.split("；");
+        for (String item: tags) {
+            List<Map<String,Object>> list2 = jdbcTemplate.queryForList("SELECT tag_id FROM Tag WHERE tag_name = ?",item);
+            if (list2.size() > 0) {
+                int tag_id = (int)list2.get(0).get("tag_id");
+                List<Map<String,Object>> list3 = jdbcTemplate.queryForList("SELECT * FROM `Like` WHERE user_id=? and tag_id=?",user_id,tag_id);
+                if (list3.size() == 0) {
+                    jdbcTemplate.update("INSERT INTO `Like` VALUES (?, ?, ?)",user_id,tag_id,10);
+                }
+            }
+
+        }
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                updateRecommend(user_id);
+            }
+        });
+        thread.start();
+        return "更新成功";
+    }
+
+
+    public void updateLike(int course_id, int weight, int user_id) {
+        List<Map<String, Object>> list = jdbcTemplate.queryForList("SELECT * from Has " +
+                "WHERE course_id= ? ",course_id);
+        for (Map<String, Object> item: list) {
+            int cur_weight = weight;
+            if (item.get("type").equals("content")) {
+                cur_weight = (int)(cur_weight * 0.3);
+            }
+            List<Map<String, Object>> list1 = jdbcTemplate.queryForList("SELECT * FROM `Like` " +
+                    "WHERE tag_id = ?",item.get("tag_id"));
+            if (list1.size() == 0) {
+                jdbcTemplate.update("INSERT INTO `Like` VALUES(?, ?, ?)",user_id,item.get("tag_id"),cur_weight);
+            } else {
+                jdbcTemplate.update("UPDATE `Like` set value=? where user_id=? and tag_id=?",
+                        (int)list1.get(0).get("value") + cur_weight,user_id,item.get("tag_id"));
+            }
+            jdbcTemplate.update("UPDATE Tag SET counter = counter + 1 WHERE tag_id=?",item.get("tag_id"));
+        }
+    }
+
+    public double userScore(int course_id,int user_id) {
+        List<Map<String,Object>> list = jdbcTemplate.queryForList("SELECT * from Course WHERE course_id=?",course_id);
+        if (list.size() == 0) return 0;
+        double origin_score = Double.parseDouble(((java.math.BigDecimal)list.get(0).get("score")).toString());
+        List<Map<String,Object>> user_course = jdbcTemplate.queryForList("SELECT * FROM Has NATURAL JOIN `Like` WHERE course_id = ? and user_id= ? ",course_id, user_id);
+        List<Map<String,Object>> list_user = jdbcTemplate.queryForList("SELECT * FROM `Like` WHERE user_id = ?",user_id);
+        List<Map<String,Object>> list_course = jdbcTemplate.queryForList("SELECT * FROM Has WHERE course_id = ?",course_id);
+        double union = Math.sqrt(list_course.size());
+        double intersect = 0;
+        for (Map<String, Object> item : user_course) {
+            intersect += Double.parseDouble(((Integer)item.get("value")).toString());
+        }
+        double sum = 0;
+        for (Map<String, Object> item : list_user) {
+            sum += Double.parseDouble(((Integer)item.get("value")).toString()) * Double.parseDouble(((Integer)item.get("value")).toString());
+        }
+        union = union * Math.sqrt(sum);
+        return origin_score + (intersect / union * 10);
+    }
+
+    public void updateRecommend(int user_id) {
+        System.out.println("update Recommend");
+        List<Map<String,Object>> list = jdbcTemplate.queryForList("SELECT Course.course_id, Course.score FROM `Has` JOIN `Like` JOIN Course " +
+                "WHERE user_id=? and `Has`.tag_id=`Like`.tag_id and Course.course_id=`Has`.course_id",user_id);
+        Set<Integer> set = new HashSet<>();
+        List<Map<String,Object>> list2 = new ArrayList<>();
+        for (Map<String,Object> item: list) {
+            if (set.contains((Integer)item.get("course_id"))) continue;
+            set.add((Integer)item.get("course_id"));
+            Map<String,Object> temp = new HashMap<>();
+            temp.put("course_id",(Integer)item.get("course_id"));
+            temp.put("score",Double.parseDouble(((java.math.BigDecimal)item.get("score")).toString()));
+            list2.add(temp);
+        }
+        System.out.println("finish Find Courses");
+        list2.sort(new Comparator<Map<String, Object>>() {
+            @Override
+            public int compare(Map<String, Object> o1, Map<String, Object> o2) {
+                return (double)o1.get("score") > (double)o2.get("score") ? 1 : 0;
+            }
+        });
+        if (list2.size() > 100) {
+            list2 = list2.subList(0,100);
+        }
+        System.out.println("finish Sort Course size : " + ((Integer)list2.size()).toString());
+        for (Map<String, Object> item: list2) {
+            item.replace("score", userScore((int)item.get("course_id"),user_id));
+        }
+        System.out.println("finish Update Score");
+        jdbcTemplate.update("DELETE FROM Recommend WHERE user_id=?",user_id);
+        if (list2.size() > 20) {
+            list2 = list2.subList(0,20);
+        }
+        for (Map<String,Object> item : list2) {
+            jdbcTemplate.update("INSERT INTO Recommend VALUES (?, ?)",user_id,item.get("course_id"));
+        }
+        System.out.println("finish Update");
     }
 }
