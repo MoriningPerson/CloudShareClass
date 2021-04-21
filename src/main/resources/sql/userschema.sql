@@ -34,7 +34,13 @@ CREATE TABLE IF NOT EXISTS `User` (
     `school` VARCHAR(200),
     `telephone` VARCHAR(200),
     `password` VARCHAR(200),
-    `portrait_url` VARCHAR(200)
+    `portrait_url` VARCHAR(200),
+    `birth` VARCHAR(100),
+    `nickname` VARCHAR(100),
+    `education` VARCHAR(100),
+    `sex` VARCHAR(100),
+    `signature` VARCHAR(100),
+    `city` VARCHAR(100)
 );
 
 --DROP TABLE IF EXISTS `Posting`;
@@ -44,7 +50,7 @@ CREATE TABLE IF NOT EXISTS `Posting` (
     `title` VARCHAR(200),
     `content` VARCHAR(200),
     `counter` INT(11),
-    `post_time` VARCHAR(200)
+    `post_time` INT(11)
 );
 
 --DROP TABLE IF EXISTS `Tag`;

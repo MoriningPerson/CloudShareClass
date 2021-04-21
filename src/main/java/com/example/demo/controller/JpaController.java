@@ -13,8 +13,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
+import java.sql.PreparedStatement;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -26,8 +29,8 @@ public class JpaController {
     BCryptPasswordEncoder bCryptPasswordEncoder;
 
 
-    static int user_id = 10;
-    static int post_id = 10;
+    static int user_id = 40;
+    static int post_id = 70;
 
     @RequestMapping(value = "/User/insert", method = RequestMethod.POST)
     public String userInsert(@RequestParam(value = "name")String name,
@@ -44,10 +47,47 @@ public class JpaController {
         } else if (UserUtil.vaildatePassword(password).equals("★★☆☆☆☆")) {
             return "密码太弱";
         } else {
-            jdbcTemplate.update("INSERT INTO User VALUES (?, ?, ?, ?, ?, ?)",
-                    user_id, name, school, telephone, password, portrait_url);
+            jdbcTemplate.update("INSERT INTO User VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    user_id, name, school, telephone, password, portrait_url, "", "", "", "", "", "");
             return "注册成功";
         }
+    }
+
+    @RequestMapping("/User/update")
+    public String updateInfo(@RequestParam(value="birth", required = false)String birth,
+                             @RequestParam(value="nickname", required = false)String nickname,
+                             @RequestParam(value="sex", required = false)String sex,
+                             @RequestParam(value="signature", required = false)String signiture,
+                             @RequestParam(value="education",required = false)String education,
+                             @RequestParam(value="city",required = false)String city) {
+        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getPrincipal();
+        String name = userDetails.getUsername();
+        List<Map<String, Object>> list = jdbcTemplate.queryForList(
+                "SELECT user_id " +
+                        "FROM User " +
+                        "WHERE name = ?", name);
+        int user_id = (int)list.get(0).get("user_id");
+        if (birth != null && birth.length() > 0) {
+            jdbcTemplate.update("UPDATE `User` SET birth=? WHERE user_id=?",birth,user_id);
+        }
+        if (education != null && education.length() > 0) {
+            jdbcTemplate.update("UPDATE `User` SET education=? WHERE user_id=?",education,user_id);
+        }
+        if (nickname != null && nickname.length() > 0) {
+            jdbcTemplate.update("UPDATE `User` SET nickname=? WHERE user_id=?",nickname,user_id);
+        }
+        if (city != null && city.length() > 0) {
+            jdbcTemplate.update("UPDATE `User` SET city=? WHERE user_id=?", city,user_id);
+        }
+        if (signiture != null && signiture.length() > 0) {
+            jdbcTemplate.update("UPDATE `User` SET signature=? WHERE user_id=?",signiture,user_id);
+        }
+        if (sex != null && sex.length() > 0) {
+            jdbcTemplate.update("UPDATE `User` SET sex=? WHERE user_id=?",sex,user_id);
+        }
+        return "更新成功";
     }
 
     @RequestMapping("/User/getDetail")
@@ -61,7 +101,7 @@ public class JpaController {
             name = userDetails.getUsername();
         }
         List<Map<String, Object>> list = jdbcTemplate.queryForList(
-                "SELECT user_id, name, school, telephone, portrait_url " +
+                "SELECT user_id, name, school, telephone, portrait_url, birth, sex, nickname, city, education, signature " +
                         "FROM User " +
                         "WHERE name = ? ", name);
         return list;
@@ -92,6 +132,11 @@ public class JpaController {
                         "FROM Posting NATURAL JOIN Post NATURAL JOIN User " +
                         "ORDER BY counter DESC " +
                         "LIMIT 3");
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        for (Map<String, Object> item: list) {
+            int tt = (int)item.get("post_time");
+            item.replace("post_time", sdf.format(new Date(tt * 1000L)));
+        }
         return list;
     }
 
@@ -134,6 +179,11 @@ public class JpaController {
                 "SELECT post_id, type, title, content, counter, post_time, user_id, name, portrait_url " +
                         "FROM Posting NATURAL JOIN Post NATURAL JOIN User NATURAL JOIN Relative " +
                         "WHERE course_id = ?", course_id);
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        for (Map<String, Object> item: list) {
+            int tt = (int)item.get("post_time");
+            item.replace("post_time", sdf.format(new Date(tt * 1000L)));
+        }
         return list;
     }
 
@@ -218,7 +268,8 @@ public class JpaController {
                 .getAuthentication()
                 .getPrincipal();
         String name = userDetails.getUsername();
-        int post_time = (int)System.currentTimeMillis() / 1000;
+        int post_time = (int)(System.currentTimeMillis() / 1000);
+        System.out.println(System.currentTimeMillis());
         List<Map<String, Object>> list = jdbcTemplate.queryForList(
                 "SELECT user_id " +
                         "FROM User " +
@@ -285,7 +336,37 @@ public class JpaController {
                 "SELECT post_id, type, title, content, counter, post_time, user_id, name, portrait_url " +
                         "FROM Posting NATURAL JOIN Post NATURAL JOIN User " +
                         "ORDER BY counter DESC");
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        for (Map<String, Object> item: list) {
+            int tt = (int)item.get("post_time");
+            item.replace("post_time", sdf.format(new Date(tt * 1000L)));
+        }
         return list;
+    }
+
+    @RequestMapping("/User/posting")
+    public List<Map<String, Object>> userPosting() {
+        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getPrincipal();
+        String name = userDetails.getUsername();
+        List<Map<String, Object>> list = jdbcTemplate.queryForList(
+                "SELECT user_id " +
+                        "FROM User " +
+                        "WHERE name = ?", name);
+        int user_id = (int)list.get(0).get("user_id");
+        List<Map<String, Object>> list2 = jdbcTemplate.queryForList(
+                "SELECT post_id, type, title, content, counter, post_time, user_id, name, portrait_url " +
+                        "FROM Posting NATURAL JOIN Post NATURAL JOIN User WHERE user_id=? " +
+                        "ORDER BY counter DESC",user_id);
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        for (Map<String, Object> item: list2) {
+            int tt = (int)item.get("post_time");
+            item.replace("post_time", sdf.format(new Date(tt * 1000L)));
+        }
+        return list2;
     }
 
     @RequestMapping("User/check")
@@ -408,7 +489,7 @@ public class JpaController {
         return list1;
     }
 
-    @RequestMapping("/User/star")
+    @RequestMapping("/Course/star")
     public String star(@RequestParam(value="course_id")int course_id) {
         UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext()
                 .getAuthentication()
@@ -577,7 +658,6 @@ public class JpaController {
                     jdbcTemplate.update("INSERT INTO `Like` VALUES (?, ?, ?)",user_id,tag_id,10);
                 }
             }
-
         }
         Thread thread = new Thread(new Runnable() {
             @Override
@@ -587,6 +667,36 @@ public class JpaController {
         });
         thread.start();
         return "更新成功";
+    }
+
+    @RequestMapping("/User/star")
+    public List<Map<String,Object>> userStar() {
+        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getPrincipal();
+        String name = userDetails.getUsername();
+        List<Map<String, Object>> list = jdbcTemplate.queryForList(
+                "SELECT user_id " +
+                        "FROM User " +
+                        "WHERE name = ?", name);
+        int user_id = (int)list.get(0).get("user_id");
+        return jdbcTemplate.queryForList("SELECT * FROM Star NATURAL JOIN Course WHERE user_id=?",user_id);
+    }
+
+    @RequestMapping("/User/updatePassword")
+    public void userUpdatePassword(@RequestParam (value="password")String password) {
+        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getPrincipal();
+        String name = userDetails.getUsername();
+        List<Map<String, Object>> list = jdbcTemplate.queryForList(
+                "SELECT user_id " +
+                        "FROM User " +
+                        "WHERE name = ?", name);
+        int user_id = (int)list.get(0).get("user_id");
+        String password2 = bCryptPasswordEncoder.encode(password);
+        jdbcTemplate.update(
+                "UPDATE User SET password = ? WHERE user_id = ? ", password2, user_id);
     }
 
 
@@ -630,10 +740,40 @@ public class JpaController {
         return origin_score + (intersect / union * 10);
     }
 
+    @PostMapping("/User/updatePortrait")
+    public String userUpdatePortrait(@RequestParam(value = "file", required = false) MultipartFile file) throws Exception {
+        if (file.isEmpty()) {
+            return "上传失败，请选择文件";
+        }
+        String origin = file.getOriginalFilename();
+        String fileName = System.currentTimeMillis() + origin;
+        String filePath = "/www/" + fileName; //文件路径
+        String portrait_url = "http://47.100.79.77/" + fileName;
+        File dest = new File(filePath);
+        try {
+            file.transferTo(dest);
+            UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext()
+                    .getAuthentication()
+                    .getPrincipal();
+            String name = userDetails.getUsername();
+            List<Map<String, Object>> list = jdbcTemplate.queryForList(
+                    "SELECT user_id " +
+                            "FROM User " +
+                            "WHERE name = ?", name);
+            int user_id = (int)list.get(0).get("user_id");
+            jdbcTemplate.update("UPDATE User SET portrait_url = ? WHERE user_id = ? ",
+                    portrait_url, user_id);
+            return "上传成功";
+        } catch (IOException e) {
+            System.out.println(e);
+        }
+        return "上传失败！";
+    }
+
     public void updateRecommend(int user_id) {
         System.out.println("update Recommend");
-        List<Map<String,Object>> list = jdbcTemplate.queryForList("SELECT Course.course_id, Course.score FROM `Has` JOIN `Like` JOIN Course " +
-                "WHERE user_id=? and `Has`.tag_id=`Like`.tag_id and Course.course_id=`Has`.course_id",user_id);
+        List<Map<String,Object>> list = jdbcTemplate.queryForList("SELECT course_id, score FROM `Has` NATURAL JOIN `Like` NATURAL JOIN CourseScore " +
+                "WHERE user_id=?",user_id);
         Set<Integer> set = new HashSet<>();
         List<Map<String,Object>> list2 = new ArrayList<>();
         for (Map<String,Object> item: list) {
@@ -641,20 +781,18 @@ public class JpaController {
             set.add((Integer)item.get("course_id"));
             Map<String,Object> temp = new HashMap<>();
             temp.put("course_id",(Integer)item.get("course_id"));
-            temp.put("score",Double.parseDouble(((java.math.BigDecimal)item.get("score")).toString()));
+            temp.put("score", (java.math.BigDecimal)item.get("score"));
             list2.add(temp);
         }
-        System.out.println("finish Find Courses");
         list2.sort(new Comparator<Map<String, Object>>() {
             @Override
             public int compare(Map<String, Object> o1, Map<String, Object> o2) {
-                return (double)o1.get("score") > (double)o2.get("score") ? 1 : 0;
+                java.math.BigDecimal s1 = (java.math.BigDecimal)o1.get("score");
+                return s1.compareTo((java.math.BigDecimal)o2.get("score"));
             }
         });
-        if (list2.size() > 100) {
-            list2 = list2.subList(0,100);
-        }
-        System.out.println("finish Sort Course size : " + ((Integer)list2.size()).toString());
+        list2.subList(0,100);
+        System.out.println("finish Find Courses");
         for (Map<String, Object> item: list2) {
             item.replace("score", userScore((int)item.get("course_id"),user_id));
         }
